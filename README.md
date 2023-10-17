@@ -1,24 +1,102 @@
-# README
+# 手順
+-  postgres:12を使用
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+### 1.git cloneをする
+```
+git clone アプリのリポジトリ
+```
 
-Things you may want to cover:
+```
+cd rails-docker
+code .
+```
 
-* Ruby version
+dockerを作成するためのブランチを作成する
+```
+git checkout -b docker
+```
 
-* System dependencies
+### 2. Dockerfileとdocker-compose.ymlを作成する
+Dockerfile
+```Dockerfile
+FROM ruby:3.2.2
+RUN apt-get update -qq && apt-get install -y \
+  build-essential \
+  libpq-dev \
+  nodejs \
+  postgresql-client \
+  yarn
+WORKDIR /rails-docker
+COPY Gemfile Gemfile.lock /rails-docker/
+RUN bundle install
+CMD rails s -p 3000 -b '0.0.0.0'
+```
+Docker-compose.yml
+```Docker-compose.yml
+version: "3.9"
 
-* Configuration
+volumes:
+  db-data:
 
-* Database creation
+services:
+  web:
+    build: .
+    ports:
+      - '3000:3000'
+    volumes:
+      - '.:/rails-docker'
+    environment:
+      - 'DATABASE_PASSWORD=postgres'
+    tty: true
+    stdin_open: true
+    depends_on:
+      - db
+    links:
+      - db
 
-* Database initialization
+  db:
+    image: postgres:12
+    volumes:
+      - 'db-data:/var/lib/postgresql/data'
+    environment:
+      - 'POSTGRES_USER=postgres'
+      - 'POSTGRES_PASSWORD=postgres'
+```
 
-* How to run the test suite
+### 3.config/database.yml修正
+host,user,portを追記
+```database.yml
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: db
+  user: postgres
+  port: 5432
+  # For details on connection pooling, see Rails configuration guide
+  # https://guides.rubyonrails.org/configuring.html#database-pooling
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+```
 
-* Services (job queues, cache servers, search engines, etc.)
+### 4.docker立ち上げる
+```
+docker-compose build
+```
+```
+docker-compose run web rails db:create db:migrate
+```
+```
+docker-compose up -d
+```
+bashに入る
+```
+docker-compose exec web bash
+```
+```
+rails db:create
+rails db:migrate
+rails s -b 0.0.0.0
+```
 
-* Deployment instructions
+Qiita記事
+https://qiita.com/kum32/items/4d8c4abe8101cadcf168#%E3%81%AF%E3%81%98%E3%82%81%E3%81%AB
 
-* ...
