@@ -1,28 +1,45 @@
-version: "3.9"
+version: '3.9'
 
+#データベースのデータを永続的に保存するためにdb-dataを使用
 volumes:
   db-data:
 
+#コンテナとサービスの定義
 services:
+#Railsアプリケーションのコンテナを指定
   web:
+#Dockerイメージを現在のディレクトリ（.）からビルド
     build: .
+#以下に理由を追記
+    command: >
+      bash -c "rails db:create &&
+              rails db:migrate &&
+              rails s -b 0.0.0.0"
+#ホストのポート 3000 とコンテナのポート 3000 をマッピングし、Railsアプリケーションにアクセスできるようにします。
     ports:
       - '3000:3000'
+#アプリケーションのコードや設定ファイルを同期させるためにローカルのファイルをコンテナ内にマウントします。
     volumes:
       - '.:/rails-docker'
+#コンテナ内の環境変数を設定します。データベースのパスワードを設定します。
     environment:
       - 'DATABASE_PASSWORD=postgres'
+#ターミナルをサポートし、コンテナに対話的にアクセスできるようにします。
     tty: true
     stdin_open: true
+#このサービスが依存しているサービスを指定します。
     depends_on:
       - db
+#他のコンテナとのリンクを設定します
     links:
       - db
-
+#PostgreSQLデータベースのコンテナを指定します。
   db:
-    image: postgres:12
+    image: postgres:15.3
+#データベースのデータを永続的に保存するために db-data ボリュームをマウントします。
     volumes:
       - 'db-data:/var/lib/postgresql/data'
+#PostgreSQLデータベースの設定を環境変数で指定します。ユーザー名,パスワードを設定します
     environment:
       - 'POSTGRES_USER=postgres'
       - 'POSTGRES_PASSWORD=postgres'
