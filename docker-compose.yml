@@ -39,6 +39,8 @@ services:
 #データベースのデータを永続的に保存するために db-data ボリュームをマウントします。
     volumes:
       - 'db-data:/var/lib/postgresql/data'
+    ports:
+      - "5432:5432"
 #PostgreSQLデータベースの設定を環境変数で指定します。ユーザー名,パスワードを設定します
     environment:
       - 'POSTGRES_USER=postgres'
